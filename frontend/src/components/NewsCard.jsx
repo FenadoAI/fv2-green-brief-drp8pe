@@ -14,8 +14,39 @@ const NewsCard = ({ news }) => {
     return date.toLocaleDateString();
   };
 
+  // Get category-based image from Unsplash or use the provided image_url
+  const getImageUrl = () => {
+    if (news.image_url) return news.image_url;
+
+    // Default images based on category from Unsplash
+    const categoryImages = {
+      technology: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80',
+      business: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80',
+      sports: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&q=80',
+      entertainment: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
+      health: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&q=80',
+      science: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&q=80',
+      world: 'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&q=80',
+      general: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80'
+    };
+
+    return categoryImages[news.category] || categoryImages.general;
+  };
+
   return (
     <Card className="mb-4 overflow-hidden transition-all duration-300 hover:shadow-lg border-l-4 border-l-green-500 bg-white">
+      {/* News Image */}
+      <div className="w-full h-48 overflow-hidden bg-gray-100">
+        <img
+          src={getImageUrl()}
+          alt={news.title}
+          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+          onError={(e) => {
+            e.target.src = 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80';
+          }}
+        />
+      </div>
+
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-3">
           <Badge

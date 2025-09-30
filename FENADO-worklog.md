@@ -78,3 +78,19 @@
 ✅ Responsive design
 ✅ Loading and error states
 ✅ Refresh functionality
+✅ Beautiful images from Unsplash for each news card
+
+### Recent Updates (2025-09-30)
+#### Image Integration
+- Added `image_url` field to NewsSummary model in backend
+- Updated NewsCard component to display images with:
+  - Category-specific default images from Unsplash
+  - Smooth hover zoom effect
+  - Error fallback image
+  - 48-unit height image container
+  - Full width responsive design
+- Updated seed data with relevant high-quality Unsplash images:
+  - Technology: AI/medical diagnostics image, EV charging image
+  - Business: Financial charts image, solar panels image
+  - Science: Space/exoplanet image
+- Successfully built and restarted both frontend and backend services

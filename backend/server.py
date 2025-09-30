@@ -72,6 +72,7 @@ class NewsSummary(BaseModel):
     source_url: str
     source_name: str
     category: str = "general"
+    image_url: Optional[str] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -319,35 +320,40 @@ async def seed_news(request: Request):
                 summary="Researchers have developed a new AI system that can detect early-stage cancer with 95% accuracy. The technology uses deep learning algorithms to analyze medical images and identify subtle patterns that human doctors might miss. Clinical trials are expected to begin next year.",
                 source_url="https://techcrunch.com",
                 source_name="TechCrunch",
-                category="technology"
+                category="technology",
+                image_url="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80"
             ),
             NewsSummary(
                 title="Global Markets Rally on Economic Data",
                 summary="Stock markets worldwide saw significant gains today following positive economic indicators. The S&P 500 rose 2.1% while Asian markets also showed strong performance. Analysts attribute the rally to better-than-expected employment figures and easing inflation concerns across major economies.",
                 source_url="https://bloomberg.com",
                 source_name="Bloomberg",
-                category="business"
+                category="business",
+                image_url="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80"
             ),
             NewsSummary(
                 title="New Exoplanet Could Harbor Life",
                 summary="Astronomers have discovered a potentially habitable exoplanet located 40 light-years away. The planet, similar in size to Earth, orbits within its star's habitable zone where liquid water could exist. Scientists are planning follow-up observations to study its atmosphere for signs of biological activity.",
                 source_url="https://nasa.gov",
                 source_name="NASA",
-                category="science"
+                category="science",
+                image_url="https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=800&q=80"
             ),
             NewsSummary(
                 title="Electric Vehicle Sales Hit Record High",
                 summary="Electric vehicle adoption reached new milestones this quarter with global sales surpassing 3 million units. Major automakers are expanding their EV lineups to meet growing demand. Industry experts predict EVs will account for 50% of new car sales by 2030 as battery costs continue to decline.",
                 source_url="https://reuters.com",
                 source_name="Reuters",
-                category="technology"
+                category="technology",
+                image_url="https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80"
             ),
             NewsSummary(
                 title="Startup Raises $100M for Clean Energy",
                 summary="A renewable energy startup has secured $100 million in Series B funding to scale its innovative solar technology. The company's panels achieve 30% higher efficiency than conventional models. Investors include major venture capital firms focused on climate tech and sustainable infrastructure development.",
                 source_url="https://techcrunch.com",
                 source_name="TechCrunch",
-                category="business"
+                category="business",
+                image_url="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&q=80"
             ),
         ]
 
