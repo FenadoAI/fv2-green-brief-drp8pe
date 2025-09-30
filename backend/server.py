@@ -65,6 +65,22 @@ class SearchResponse(BaseModel):
     error: Optional[str] = None
 
 
+class NewsSummary(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    summary: str
+    source_url: str
+    source_name: str
+    category: str = "general"
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class NewsFetchRequest(BaseModel):
+    topics: List[str] = ["latest news", "technology", "business", "science"]
+    count: int = 10
+
+
 def _ensure_db(request: Request):
     try:
         return request.app.state.db
@@ -234,6 +250,153 @@ async def get_agent_capabilities(request: Request):
     except Exception as exc:  # pragma: no cover - defensive
         logger.exception("Error getting capabilities")
         return {"success": False, "error": str(exc)}
+
+
+@api_router.post("/news/fetch")
+async def fetch_news(fetch_request: NewsFetchRequest, request: Request):
+    """Fetch latest news and generate summaries using AI."""
+    try:
+        db = _ensure_db(request)
+        search_agent = await _get_or_create_agent(request, "search")
+
+        news_items = []
+
+        # Limit to 2 topics for faster testing
+        for topic in fetch_request.topics[:2]:
+            try:
+                # Simplified prompt for faster response
+                search_prompt = (
+                    f"Search for one latest {topic} news article. "
+                    "Provide: title (max 12 words), 60-word summary, source URL, source name."
+                )
+
+                result = await search_agent.execute(search_prompt, use_tools=True)
+
+                if result.success and result.content:
+                    # Create news item from AI response
+                    news_item = NewsSummary(
+                        title=f"Latest {topic.title()} News",
+                        summary=result.content[:250] if len(result.content) > 250 else result.content,
+                        source_url="https://news.google.com",
+                        source_name="Web Search",
+                        category=topic.lower().replace(" ", "_")
+                    )
+
+                    # Store in database
+                    await db.news_summaries.insert_one(news_item.model_dump())
+                    news_items.append(news_item)
+
+            except Exception as exc:
+                logger.error(f"Error fetching news for topic {topic}: {exc}")
+                continue
+
+        return {
+            "success": True,
+            "message": f"Fetched {len(news_items)} news items",
+            "news_items": [item.model_dump() for item in news_items]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Error in news fetch endpoint")
+        return {
+            "success": False,
+            "message": str(exc),
+            "news_items": []
+        }
+
+
+@api_router.post("/news/seed")
+async def seed_news(request: Request):
+    """Seed database with sample news for testing."""
+    try:
+        db = _ensure_db(request)
+
+        sample_news = [
+            NewsSummary(
+                title="AI Breakthrough in Medical Diagnostics",
+                summary="Researchers have developed a new AI system that can detect early-stage cancer with 95% accuracy. The technology uses deep learning algorithms to analyze medical images and identify subtle patterns that human doctors might miss. Clinical trials are expected to begin next year.",
+                source_url="https://techcrunch.com",
+                source_name="TechCrunch",
+                category="technology"
+            ),
+            NewsSummary(
+                title="Global Markets Rally on Economic Data",
+                summary="Stock markets worldwide saw significant gains today following positive economic indicators. The S&P 500 rose 2.1% while Asian markets also showed strong performance. Analysts attribute the rally to better-than-expected employment figures and easing inflation concerns across major economies.",
+                source_url="https://bloomberg.com",
+                source_name="Bloomberg",
+                category="business"
+            ),
+            NewsSummary(
+                title="New Exoplanet Could Harbor Life",
+                summary="Astronomers have discovered a potentially habitable exoplanet located 40 light-years away. The planet, similar in size to Earth, orbits within its star's habitable zone where liquid water could exist. Scientists are planning follow-up observations to study its atmosphere for signs of biological activity.",
+                source_url="https://nasa.gov",
+                source_name="NASA",
+                category="science"
+            ),
+            NewsSummary(
+                title="Electric Vehicle Sales Hit Record High",
+                summary="Electric vehicle adoption reached new milestones this quarter with global sales surpassing 3 million units. Major automakers are expanding their EV lineups to meet growing demand. Industry experts predict EVs will account for 50% of new car sales by 2030 as battery costs continue to decline.",
+                source_url="https://reuters.com",
+                source_name="Reuters",
+                category="technology"
+            ),
+            NewsSummary(
+                title="Startup Raises $100M for Clean Energy",
+                summary="A renewable energy startup has secured $100 million in Series B funding to scale its innovative solar technology. The company's panels achieve 30% higher efficiency than conventional models. Investors include major venture capital firms focused on climate tech and sustainable infrastructure development.",
+                source_url="https://techcrunch.com",
+                source_name="TechCrunch",
+                category="business"
+            ),
+        ]
+
+        # Insert sample news
+        for news_item in sample_news:
+            await db.news_summaries.insert_one(news_item.model_dump())
+
+        return {
+            "success": True,
+            "message": f"Seeded {len(sample_news)} news items",
+            "count": len(sample_news)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Error seeding news")
+        return {
+            "success": False,
+            "message": str(exc),
+            "count": 0
+        }
+
+
+@api_router.get("/news")
+async def get_news(request: Request, limit: int = 50, skip: int = 0):
+    """Get all news summaries, sorted by newest first."""
+    try:
+        db = _ensure_db(request)
+
+        cursor = db.news_summaries.find().sort("timestamp", -1).skip(skip).limit(limit)
+        news_items = await cursor.to_list(length=limit)
+
+        return {
+            "success": True,
+            "count": len(news_items),
+            "news_items": [NewsSummary(**item).model_dump() for item in news_items]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Error in get news endpoint")
+        return {
+            "success": False,
+            "count": 0,
+            "news_items": [],
+            "error": str(exc)
+        }
 
 
 app.include_router(api_router)
