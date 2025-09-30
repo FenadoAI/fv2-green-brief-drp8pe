@@ -94,3 +94,19 @@
   - Business: Financial charts image, solar panels image
   - Science: Space/exoplanet image
 - Successfully built and restarted both frontend and backend services
+
+#### Category Filtering Feature
+- Added sticky category filter bar with 9 categories:
+  - All, Technology, Business, Science, Health, Sports, Entertainment, World, General
+  - Each category has an icon for visual appeal
+  - Active category highlighted in green, inactive in gray
+- Frontend updates:
+  - Implemented category state management
+  - Added horizontal scrollable category badges
+  - Category selection triggers filtered news fetch
+  - Sticky positioning below header for easy access
+- Backend updates:
+  - Added `category` query parameter to `/api/news` endpoint
+  - MongoDB query filtering by category
+  - Returns filtered results based on selected category
+- Successfully built and deployed both services

@@ -3,24 +3,39 @@ import axios from 'axios';
 import NewsCard from '../components/NewsCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { RefreshCw, AlertCircle, Newspaper } from 'lucide-react';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8001';
 const API = `${API_BASE}/api`;
+
+const CATEGORIES = [
+  { id: 'all', label: 'All', icon: '📰' },
+  { id: 'technology', label: 'Technology', icon: '💻' },
+  { id: 'business', label: 'Business', icon: '💼' },
+  { id: 'science', label: 'Science', icon: '🔬' },
+  { id: 'health', label: 'Health', icon: '🏥' },
+  { id: 'sports', label: 'Sports', icon: '⚽' },
+  { id: 'entertainment', label: 'Entertainment', icon: '🎬' },
+  { id: 'world', label: 'World', icon: '🌍' },
+  { id: 'general', label: 'General', icon: '📄' },
+];
 
 const NewsFeed = () => {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
-  const fetchNews = async (isRefresh = false) => {
+  const fetchNews = async (isRefresh = false, category = selectedCategory) => {
     try {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
 
       setError(null);
-      const response = await axios.get(`${API}/news?limit=50`);
+      const categoryParam = category !== 'all' ? `&category=${category}` : '';
+      const response = await axios.get(`${API}/news?limit=50${categoryParam}`);
 
       if (response.data.success) {
         setNews(response.data.news_items);
@@ -34,6 +49,12 @@ const NewsFeed = () => {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const handleCategoryChange = (categoryId) => {
+    setSelectedCategory(categoryId);
+    setLoading(true);
+    fetchNews(false, categoryId);
   };
 
   const seedNews = async () => {
@@ -91,6 +112,28 @@ const NewsFeed = () => {
           </Button>
         </div>
       </header>
+
+      {/* Category Filter */}
+      <div className="bg-white border-b border-gray-200 sticky top-[72px] z-10 shadow-sm">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {CATEGORIES.map((category) => (
+              <Badge
+                key={category.id}
+                onClick={() => handleCategoryChange(category.id)}
+                className={`cursor-pointer whitespace-nowrap transition-all duration-200 px-4 py-2 text-sm font-medium ${
+                  selectedCategory === category.id
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <span className="mr-2">{category.icon}</span>
+                {category.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 py-8">

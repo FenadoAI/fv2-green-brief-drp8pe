@@ -379,17 +379,23 @@ async def seed_news(request: Request):
 
 
 @api_router.get("/news")
-async def get_news(request: Request, limit: int = 50, skip: int = 0):
-    """Get all news summaries, sorted by newest first."""
+async def get_news(request: Request, limit: int = 50, skip: int = 0, category: Optional[str] = None):
+    """Get all news summaries, sorted by newest first. Optionally filter by category."""
     try:
         db = _ensure_db(request)
 
-        cursor = db.news_summaries.find().sort("timestamp", -1).skip(skip).limit(limit)
+        # Build query filter
+        query_filter = {}
+        if category and category.lower() != 'all':
+            query_filter['category'] = category.lower()
+
+        cursor = db.news_summaries.find(query_filter).sort("timestamp", -1).skip(skip).limit(limit)
         news_items = await cursor.to_list(length=limit)
 
         return {
             "success": True,
             "count": len(news_items),
+            "category": category,
             "news_items": [NewsSummary(**item).model_dump() for item in news_items]
         }
 
