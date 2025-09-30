@@ -310,61 +310,99 @@ async def fetch_news(fetch_request: NewsFetchRequest, request: Request):
 
 @api_router.post("/news/seed")
 async def seed_news(request: Request):
-    """Seed database with sample news for testing."""
+    """Fetch real news from various categories using SearchAgent."""
     try:
         db = _ensure_db(request)
 
-        sample_news = [
-            NewsSummary(
-                title="AI Breakthrough in Medical Diagnostics",
-                summary="Researchers have developed a new AI system that can detect early-stage cancer with 95% accuracy. The technology uses deep learning algorithms to analyze medical images and identify subtle patterns that human doctors might miss. Clinical trials are expected to begin next year.",
-                source_url="https://techcrunch.com",
-                source_name="TechCrunch",
-                category="technology",
-                image_url="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80"
-            ),
-            NewsSummary(
-                title="Global Markets Rally on Economic Data",
-                summary="Stock markets worldwide saw significant gains today following positive economic indicators. The S&P 500 rose 2.1% while Asian markets also showed strong performance. Analysts attribute the rally to better-than-expected employment figures and easing inflation concerns across major economies.",
-                source_url="https://bloomberg.com",
-                source_name="Bloomberg",
-                category="business",
-                image_url="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80"
-            ),
-            NewsSummary(
-                title="New Exoplanet Could Harbor Life",
-                summary="Astronomers have discovered a potentially habitable exoplanet located 40 light-years away. The planet, similar in size to Earth, orbits within its star's habitable zone where liquid water could exist. Scientists are planning follow-up observations to study its atmosphere for signs of biological activity.",
-                source_url="https://nasa.gov",
-                source_name="NASA",
-                category="science",
-                image_url="https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=800&q=80"
-            ),
-            NewsSummary(
-                title="Electric Vehicle Sales Hit Record High",
-                summary="Electric vehicle adoption reached new milestones this quarter with global sales surpassing 3 million units. Major automakers are expanding their EV lineups to meet growing demand. Industry experts predict EVs will account for 50% of new car sales by 2030 as battery costs continue to decline.",
-                source_url="https://reuters.com",
-                source_name="Reuters",
-                category="technology",
-                image_url="https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80"
-            ),
-            NewsSummary(
-                title="Startup Raises $100M for Clean Energy",
-                summary="A renewable energy startup has secured $100 million in Series B funding to scale its innovative solar technology. The company's panels achieve 30% higher efficiency than conventional models. Investors include major venture capital firms focused on climate tech and sustainable infrastructure development.",
-                source_url="https://techcrunch.com",
-                source_name="TechCrunch",
-                category="business",
-                image_url="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&q=80"
-            ),
+        # News topics with their categories
+        news_queries = [
+            {"query": "latest technology news today", "category": "technology"},
+            {"query": "artificial intelligence breakthroughs", "category": "technology"},
+            {"query": "latest business news stock market", "category": "business"},
+            {"query": "startup funding news", "category": "business"},
+            {"query": "latest science discoveries", "category": "science"},
+            {"query": "space exploration news", "category": "science"},
+            {"query": "health medical research news", "category": "health"},
+            {"query": "sports news today", "category": "sports"},
+            {"query": "entertainment movies news", "category": "entertainment"},
+            {"query": "world news international", "category": "world"},
         ]
 
-        # Insert sample news
-        for news_item in sample_news:
-            await db.news_summaries.insert_one(news_item.model_dump())
+        search_agent = await _get_or_create_agent(request, "search")
+        news_items = []
+
+        logger.info(f"Fetching real news for {len(news_queries)} topics")
+
+        for query_info in news_queries:
+            try:
+                query = query_info["query"]
+                category = query_info["category"]
+
+                logger.info(f"Searching for: {query}")
+
+                # Use SearchAgent to get real news
+                result = await search_agent.execute(
+                    f"Find the latest news about: {query}. Provide a concise 2-3 sentence summary.",
+                    use_tools=True
+                )
+
+                if result and result.content:
+                    # Extract title and summary from result
+                    content = result.content.strip()
+
+                    # Try to extract title (first sentence or first line)
+                    lines = content.split('\n')
+                    title = lines[0].strip()
+
+                    # Clean up title
+                    if title.startswith('*') or title.startswith('-'):
+                        title = title[1:].strip()
+                    if title.startswith('Title:') or title.startswith('**'):
+                        title = title.replace('Title:', '').replace('**', '').strip()
+
+                    # Get summary (rest of content or full content if short)
+                    summary = '\n'.join(lines[1:]).strip() if len(lines) > 1 else content
+                    if not summary:
+                        summary = content
+
+                    # Limit lengths
+                    title = title[:200] if len(title) > 200 else title
+                    summary = summary[:500] if len(summary) > 500 else summary
+
+                    # Category-specific Unsplash images
+                    category_images = {
+                        "technology": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80",
+                        "business": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80",
+                        "science": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&q=80",
+                        "health": "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&q=80",
+                        "sports": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&q=80",
+                        "entertainment": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80",
+                        "world": "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&q=80",
+                        "general": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80"
+                    }
+
+                    news_item = NewsSummary(
+                        title=title,
+                        summary=summary,
+                        source_url="https://news.google.com",
+                        source_name="Web Search",
+                        category=category,
+                        image_url=category_images.get(category, category_images["general"])
+                    )
+
+                    # Store in database
+                    await db.news_summaries.insert_one(news_item.model_dump())
+                    news_items.append(news_item)
+                    logger.info(f"Added news: {title[:50]}...")
+
+            except Exception as exc:
+                logger.error(f"Error fetching news for {query_info['query']}: {exc}")
+                continue
 
         return {
             "success": True,
-            "message": f"Seeded {len(sample_news)} news items",
-            "count": len(sample_news)
+            "message": f"Fetched {len(news_items)} real news items",
+            "count": len(news_items)
         }
 
     except HTTPException:
